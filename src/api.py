@@ -1,16 +1,16 @@
 from time import time
-from typing import Dict
+from typing import Dict, List
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 from src.generator import answer_question
-from src.logger import log_query, read_logs
+from src.logger import log_query
 
 
 app = FastAPI(
-    title="Enterprise RAG Support Automation API",
-    description="RAG-based IT support assistant with ticket classification and routing",
+    title="Enterprise RAG Support Automation Platform",
+    description="RAG-based support automation API with retrieval, answer generation, ticket classification, and query logging.",
     version="1.0.0",
 )
 
@@ -22,15 +22,15 @@ class AskRequest(BaseModel):
 @app.get("/")
 def root() -> Dict:
     return {
-        "message": "Enterprise RAG Support Automation API is running",
-        "docs": "/docs",
+        "message": "Enterprise RAG Support Automation Platform API",
+        "status": "running",
     }
 
 
 @app.get("/health")
 def health_check() -> Dict:
     return {
-        "status": "healthy",
+        "status": "ok",
         "service": "enterprise-rag-support-platform",
     }
 
@@ -44,11 +44,11 @@ def ask_question(request: AskRequest) -> Dict:
     latency_ms = round((time() - start_time) * 1000, 2)
 
     api_response = {
-        "question": response["question"],
-        "answer": response["answer"],
-        "sources": response["sources"],
-        "ticket": response["ticket"],
-        "fallback_triggered": response["fallback_triggered"],
+        "question": request.question,
+        "answer": response.get("answer", ""),
+        "sources": response.get("sources", []),
+        "ticket": response.get("ticket", {}),
+        "fallback_triggered": response.get("fallback_triggered", False),
         "latency_ms": latency_ms,
     }
 
@@ -59,9 +59,19 @@ def ask_question(request: AskRequest) -> Dict:
 
 @app.get("/logs")
 def get_logs() -> Dict:
-    logs = read_logs()
+    log_file = "logs/query_logs.jsonl"
 
-    return {
-        "total_logs": len(logs),
-        "logs": logs[-20:],
-    }
+    try:
+        with open(log_file, "r", encoding="utf-8") as file:
+            logs: List[str] = file.readlines()
+
+        return {
+            "total_logs": len(logs),
+            "logs": logs[-20:],
+        }
+
+    except FileNotFoundError:
+        return {
+            "total_logs": 0,
+            "logs": [],
+        }

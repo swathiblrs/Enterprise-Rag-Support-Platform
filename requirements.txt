@@ -12,3 +12,5 @@ rank-bm25
 pandas
 scikit-learn
 requests
+pytest
+httpx

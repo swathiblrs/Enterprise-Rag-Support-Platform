@@ -1,101 +1,104 @@
-from typing import List, Dict
+from typing import Dict, List
 
 from src.retriever import retrieve_relevant_chunks
 from src.ticket_classifier import classify_ticket
 
 
-def generate_answer(question: str, retrieved_chunks: List[Dict]) -> Dict:
+def answer_question(question: str) -> Dict:
+    """
+    Generates a grounded support answer using retrieved knowledge chunks
+    and adds ticket classification metadata.
+    """
+    retrieved_chunks = retrieve_relevant_chunks(question, top_k=3)
+    ticket = classify_ticket(question)
+
     if not retrieved_chunks:
         return {
-            "answer": "I could not find enough information in the knowledge base to answer this.",
+            "answer": (
+                "I could not find enough information in the knowledge base to answer this question. "
+                "Please contact the Service Desk for further assistance."
+            ),
             "sources": [],
-            "fallback_triggered": True,
+            "retrieved_chunks": [],
+            "ticket": ticket,
+            "fallback": True,
         }
 
+    answer = generate_grounded_answer(question, retrieved_chunks)
+
     sources = []
-    context_parts = []
-
     for chunk in retrieved_chunks:
-        source = chunk["source"]
-
-        if source not in sources:
-            sources.append(source)
-
-        context_parts.append(chunk["text"])
-
-    combined_context = "\n\n".join(context_parts)
-
-    answer = build_simple_answer(question, combined_context, sources)
+        if chunk["source"] not in sources:
+            sources.append(chunk["source"])
 
     return {
         "answer": answer,
         "sources": sources,
-        "fallback_triggered": False,
+        "retrieved_chunks": retrieved_chunks,
+        "ticket": ticket,
+        "fallback": False,
     }
 
 
-def build_simple_answer(question: str, context: str, sources: List[str]) -> str:
+def generate_grounded_answer(question: str, retrieved_chunks: List[Dict]) -> str:
+    """
+    Creates a grounded support answer from retrieved context.
+    """
     question_lower = question.lower()
+    context_text = "\n\n".join(chunk["text"] for chunk in retrieved_chunks)
+    context_lower = context_text.lower()
 
     if "vpn" in question_lower:
-        answer = (
-            "Based on the knowledge base, first confirm that you can log in to the "
-            "Single Sign-On portal. Then restart the VPN client, verify Duo MFA approval, "
-            "clear saved VPN credentials, confirm you are using the latest VPN client version, "
-            "and reconnect using the new password if it was recently changed."
+        return (
+            "Based on the knowledge base, this appears to be a VPN connectivity issue. "
+            "Please verify your internet connection, confirm that your VPN client is updated, "
+            "restart the VPN application, and try signing in again. "
+            "If the issue started after a password reset, make sure you are using the updated password "
+            "and reconnecting through the VPN client."
         )
 
-    elif "password" in question_lower or "account" in question_lower or "locked" in question_lower:
-        answer = (
-            "Based on the knowledge base, visit the Single Sign-On password reset portal, "
-            "verify your identity using the approved recovery method, reset the password, "
-            "wait 5 to 10 minutes for synchronization, sign out of active sessions, and log in again."
+    if any(keyword in question_lower for keyword in ["password", "locked", "login", "sign in", "account"]):
+        return (
+            "Based on the knowledge base, this appears to be an account access issue. "
+            "Please try resetting your password through the approved password reset process. "
+            "If your account is locked, wait for the lockout period to expire or contact the Identity "
+            "and Access Management team for account unlock support."
         )
 
-    elif "duo" in question_lower or "mfa" in question_lower:
-        answer = (
-            "Based on the knowledge base, verify network connectivity on the mobile device, "
-            "open the Duo Mobile app manually, check push notification settings, and re-register "
-            "the device if the phone was changed."
+    if any(keyword in question_lower for keyword in ["duo", "mfa", "authentication", "push"]):
+        return (
+            "Based on the knowledge base, this appears to be a multi-factor authentication issue. "
+            "Please check your Duo/MFA device, ensure push notifications are enabled, verify network access, "
+            "and try approving the request again. If the issue continues, contact the Identity and Access "
+            "Management team."
         )
 
-    else:
-        answer = (
-            "I found related knowledge-base information, but I could not generate a specific "
-            "answer for this issue yet."
+    if any(keyword in context_lower for keyword in ["critical", "high", "priority", "outage"]):
+        return (
+            "Based on the retrieved knowledge base content, this request may require priority review. "
+            "Please include the number of affected users, business impact, and whether this is blocking "
+            "production or normal work."
         )
 
-    answer += "\n\nSources:\n"
-    for source in sources:
-        answer += f"- {source}\n"
-
-    return answer
-
-
-def answer_question(question: str) -> Dict:
-    retrieved_chunks = retrieve_relevant_chunks(question)
-    rag_response = generate_answer(question, retrieved_chunks)
-    ticket = classify_ticket(question)
-
-    return {
-        "question": question,
-        "answer": rag_response["answer"],
-        "sources": rag_response["sources"],
-        "ticket": ticket,
-        "fallback_triggered": rag_response["fallback_triggered"],
-    }
+    return (
+        "Based on the retrieved knowledge base content, this request should be reviewed by the Service Desk. "
+        "Please provide the error message, affected system, number of impacted users, and steps already tried."
+    )
 
 
 if __name__ == "__main__":
-    question = "My VPN is not working after I reset my password"
+    test_questions = [
+        "My VPN is not working after I reset my password",
+        "I cannot approve Duo push notifications",
+        "My account is locked",
+        "Multiple users cannot access VPN",
+        "Company-wide authentication failure",
+    ]
 
-    response = answer_question(question)
-
-    print("\nQuestion:")
-    print(response["question"])
-
-    print("\nAnswer:")
-    print(response["answer"])
-
-    print("\nTicket Recommendation:")
-    print(response["ticket"])
+    for question in test_questions:
+        print("\nQuestion:", question)
+        result = answer_question(question)
+        print("Answer:", result["answer"])
+        print("Sources:", result["sources"])
+        print("Ticket:", result["ticket"])
+        print("Fallback:", result["fallback"])

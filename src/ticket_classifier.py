@@ -43,13 +43,51 @@ def classify_ticket(question: str) -> Dict:
 
 
 def predict_priority(question_lower: str) -> str:
-    if any(keyword in question_lower for keyword in ["outage", "down", "production", "company-wide"]):
+    # Critical issues affect production systems, company-wide services, or security.
+    if any(
+        keyword in question_lower
+        for keyword in [
+            "outage",
+            "down",
+            "production",
+            "company-wide",
+            "company wide",
+            "security breach",
+            "security incident",
+        ]
+    ):
         return "Critical"
 
-    if any(keyword in question_lower for keyword in ["multiple users", "department", "team blocked"]):
+    # High priority issues affect multiple users, a department, or a team.
+    if any(
+        keyword in question_lower
+        for keyword in [
+            "multiple users",
+            "many users",
+            "several users",
+            "department",
+            "team blocked",
+            "business-critical",
+            "business critical",
+        ]
+    ):
         return "High"
 
-    if any(keyword in question_lower for keyword in ["cannot", "unable", "not working", "blocked", "failed"]):
+    # Medium priority issues block one user or prevent normal work.
+    if any(
+        keyword in question_lower
+        for keyword in [
+            "cannot",
+            "can't",
+            "unable",
+            "not working",
+            "blocked",
+            "failed",
+            "locked",
+            "error",
+            "issue",
+        ]
+    ):
         return "Medium"
 
     return "Low"

@@ -1,0 +1,37 @@
+[
+  {
+    "question": "My VPN is not working after I reset my password",
+    "expected_sources": ["vpn_troubleshooting_kb.md"],
+    "expected_category": "VPN Connectivity",
+    "expected_team": "Network Support",
+    "expected_priority": "Medium"
+  },
+  {
+    "question": "I cannot approve Duo push notifications",
+    "expected_sources": ["mfa_duo_kb.md"],
+    "expected_category": "Multi-Factor Authentication",
+    "expected_team": "Identity and Access Management",
+    "expected_priority": "Medium"
+  },
+  {
+    "question": "My account is locked",
+    "expected_sources": ["password_reset_kb.md"],
+    "expected_category": "Account Access",
+    "expected_team": "Identity and Access Management",
+    "expected_priority": "Medium"
+  },
+  {
+    "question": "Multiple users cannot access VPN",
+    "expected_sources": ["vpn_troubleshooting_kb.md", "priority_matrix.md"],
+    "expected_category": "VPN Connectivity",
+    "expected_team": "Network Support",
+    "expected_priority": "High"
+  },
+  {
+    "question": "Company-wide authentication failure",
+    "expected_sources": ["priority_matrix.md", "mfa_duo_kb.md"],
+    "expected_category": "Multi-Factor Authentication",
+    "expected_team": "Identity and Access Management",
+    "expected_priority": "Critical"
+  }
+]
